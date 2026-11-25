@@ -8,7 +8,7 @@
 <meta name="theme-color" content="#f3f3f1">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2318181b'/%3E%3Cpath d='M8 8h8v8H8zM16 16h8v8h-8z' fill='%23fff'/%3E%3Cpath d='M16 8h8v8h-8zM8 16h8v8H8z' fill='%23fff' opacity='.35'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
-<link rel="stylesheet" href="style.css?v=1">
+<link rel="stylesheet" href="style.css?v=2">
 </head>
 <body>
 <header class="top">
@@ -33,6 +33,10 @@
       <span class="sub">끌어다 놓거나 붙여넣기</span>
     </label>
     <p class="lock"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>기기 안에서 처리</p>
+    <button class="store" id="store" hidden>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg>
+      <span id="storeText">저장된 모델 지우기</span><small id="storeSize"></small>
+    </button>
   </section>
 
   <section id="work" hidden>
@@ -73,6 +77,6 @@
   </section>
 </main>
 <div class="toast" id="toast" hidden></div>
-<script type="module" src="app.js?v=2"></script>
+<script type="module" src="app.js?v=3"></script>
 </body>
 </html>

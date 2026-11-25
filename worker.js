@@ -23,7 +23,7 @@ const MAX_PX = 50e6;
 const MEAN = [0.485, 0.456, 0.406], STD = [0.229, 0.224, 0.225];
 
 let caps = null;
-let session = null, sessionEp = null, loading = null;
+let session = null, sessionEp = null, loading = null, running = false;
 const testOpts = {}; // dev 시험용 refine 옵션 덮어쓰기
 const post = (m, t) => self.postMessage(m, t || []);
 
@@ -254,7 +254,14 @@ self.onmessage = async (e) => {
       await detect();
       post({ type: 'caps', caps, cached: await isCached(), mb: Math.round(MODELS[MODEL].bytes / 1e6) });
     } else if (m.type === 'run') {
-      await run(m);
+      running = true;
+      try { await run(m); } finally { running = false; }
+    } else if (m.type === 'clear') {
+      // 저장해 둔 모델 지우기 (다음에 사진을 열면 다시 받음)
+      let ok = false;
+      try { ok = await caches.delete(CACHE); } catch { /* 캐시 못 씀 */ }
+      if (session && !running && !loading) { try { await session.release(); } catch {} session = null; sessionEp = null; }
+      post({ type: 'cleared', id: m.id, ok, cached: await isCached() });
     } else if (m.type === 'encode') {
       const blob = await encodePNG(new Uint8ClampedArray(m.buffer), m.W, m.H);
       post({ type: 'encoded', id: m.id, blob });

@@ -6,7 +6,7 @@ const TEST = new URLSearchParams(location.search).has('test');
 const IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 const MAX_PX = IOS ? 16e6 : 50e6;
 
-const worker = new Worker(new URL('./worker.js?v=2', import.meta.url), { type: 'module' });
+const worker = new Worker(new URL('./worker.js?v=3', import.meta.url), { type: 'module' });
 
 const S = {
   caps: null, cached: false, mb: 0, ep: '',
@@ -48,8 +48,8 @@ worker.onmessage = (e) => {
     case 'progress': if (m.id === S.job) onProgress(m); break;
     case 'warn': console.warn('[nukki worker]', m.message); (window.__nkWarn = window.__nkWarn || []).push(m.message); break;
     case 'result': if (m.id === S.job) onResult(m); break;
-    case 'encoded': case 'opts': {
-      const w = waiters.get(m.id); if (w) { waiters.delete(m.id); w.res(m.blob); } break;
+    case 'encoded': case 'opts': case 'cleared': {
+      const w = waiters.get(m.id); if (w) { waiters.delete(m.id); w.res(m.type === 'cleared' ? m : m.blob); } break;
     }
     case 'error': {
       const w = waiters.get(m.id);
@@ -64,7 +64,36 @@ worker.postMessage({ type: 'caps' });
 
 function onCaps(m) {
   S.caps = m.caps; S.cached = m.cached; S.mb = m.mb;
+  renderStore();
 }
+
+// 저장된 모델 지우기: 처음 화면에서만, 저장돼 있을 때만 보인다. 두 번 눌러야 지운다.
+let storeTimer = 0;
+function renderStore(armed) {
+  const b = $('#store');
+  b.hidden = !S.cached;
+  b.classList.toggle('armed', !!armed);
+  $('#storeText').textContent = armed ? '한 번 더 누르면 지워요' : '저장된 모델 지우기';
+  $('#storeSize').textContent = !armed && S.mb ? S.mb + 'MB' : '';
+}
+$('#store').onclick = async () => {
+  const b = $('#store');
+  if (!b.classList.contains('armed')) {
+    renderStore(true);
+    clearTimeout(storeTimer);
+    storeTimer = setTimeout(() => renderStore(false), 4000);
+    return;
+  }
+  clearTimeout(storeTimer);
+  b.disabled = true;
+  try {
+    const r = await call({ type: 'clear' });
+    S.cached = r.cached;
+    toast(r.cached ? '모델을 지우지 못했어요' : '저장된 모델을 지웠어요');
+  } catch { toast('모델을 지우지 못했어요'); }
+  b.disabled = false;
+  renderStore(false);
+};
 $('#newPhoto').onclick = () => $('#file').click();
 
 // ---------- 사진 열기 ----------
@@ -99,6 +128,7 @@ function closeImage() {
 function goHome() {
   closeImage(); S.file = null; S.busy = false;
   $('#home').hidden = false; $('#work').hidden = true; $('#back').hidden = true; $('#newPhoto').hidden = true;
+  worker.postMessage({ type: 'caps' });
   $('#tools').hidden = true; $('#busy').hidden = true; $('#zoom').hidden = true;
   $('#fileinfo').textContent = '';
   $('#file').value = '';
