@@ -84,13 +84,14 @@ body.dragging .drop { transform: scale(1.01); }
 .lock svg { width: 14px; height: 14px; }
 
 .store {
-  display: flex; align-items: center; gap: 6px; margin-top: -10px; padding: 6px 10px; border-radius: 8px;
-  font-size: 13px; color: var(--ink-3); transition: color .15s, background .15s;
+  display: flex; align-items: center; gap: 7px; height: 38px; padding: 0 16px 0 13px; border-radius: 999px;
+  background: var(--panel); box-shadow: inset 0 0 0 1px var(--line), 0 1px 2px rgba(24, 24, 27, .05);
+  font-size: 14px; font-weight: 600; color: var(--ink-2); transition: color .15s, background .15s, box-shadow .15s;
 }
-.store svg { width: 14px; height: 14px; }
-.store small { font-size: 12px; opacity: .8; }
-.store:hover { background: var(--hover); color: var(--ink-2); }
-.store.armed, .store.armed:hover { background: #fdecea; color: #b42318; }
+.store svg { width: 16px; height: 16px; }
+.store small { font-size: 12px; font-weight: 500; color: var(--ink-3); }
+.store:hover { color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink-3), 0 1px 2px rgba(24, 24, 27, .05); }
+.store.armed, .store.armed:hover { background: #d92d20; color: #fff; box-shadow: none; }
 
 /* 작업 화면 */
 #work { position: absolute; inset: 0; }

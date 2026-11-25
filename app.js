@@ -73,7 +73,7 @@ function renderStore(armed) {
   const b = $('#store');
   b.hidden = !S.cached;
   b.classList.toggle('armed', !!armed);
-  $('#storeText').textContent = armed ? '한 번 더 누르면 지워요' : '저장된 모델 지우기';
+  $('#storeText').textContent = armed ? '한번 더 눌러 삭제' : '저장된 모델 지우기';
   $('#storeSize').textContent = !armed && S.mb ? S.mb + 'MB' : '';
 }
 $('#store').onclick = async () => {
