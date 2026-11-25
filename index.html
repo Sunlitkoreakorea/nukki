@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>누끼 | 배경 지우기</title>
+<meta name="description" content="사진 배경을 원본 해상도 그대로 지워 주는 무료 도구. 사진은 기기 밖으로 나가지 않아요.">
+<meta name="theme-color" content="#f3f3f1">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2318181b'/%3E%3Cpath d='M8 8h8v8H8zM16 16h8v8h-8z' fill='%23fff'/%3E%3Cpath d='M16 8h8v8h-8zM8 16h8v8H8z' fill='%23fff' opacity='.35'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="style.css?v=1">
+</head>
+<body>
+<header class="top">
+  <button class="ghost icon" id="back" hidden title="처음으로" aria-label="처음으로">
+    <svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>
+  </button>
+  <div class="brand"><span class="logo" aria-hidden="true"></span>누끼</div>
+  <div class="fileinfo" id="fileinfo"></div>
+  <button class="ghost small newphoto" id="newPhoto" hidden>
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>새 사진
+  </button>
+</header>
+
+<main>
+  <section id="home">
+    <label class="drop" id="drop">
+      <input type="file" id="file" accept="image/*" hidden>
+      <span class="drop-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
+      </span>
+      <strong>사진 고르기</strong>
+      <span class="sub">끌어다 놓거나 붙여넣기</span>
+    </label>
+    <p class="lock"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>기기 안에서 처리</p>
+  </section>
+
+  <section id="work" hidden>
+    <canvas id="view"></canvas>
+    <div class="busy" id="busy" hidden>
+      <div class="busy-card">
+        <span id="busytext">준비 중</span>
+        <div class="bar"><i id="busybar"></i></div>
+        <button class="ghost small" id="retry" hidden>다시 시도</button>
+      </div>
+    </div>
+    <div class="zoom" id="zoom" hidden>
+      <button class="ghost icon small" id="zoomOut" aria-label="축소"><svg viewBox="0 0 24 24"><path d="M6 12h12"/></svg></button>
+      <button class="ghost small" id="zoomFit" title="화면에 맞추기">100%</button>
+      <button class="ghost icon small" id="zoomIn" aria-label="확대"><svg viewBox="0 0 24 24"><path d="M6 12h12M12 6v12"/></svg></button>
+    </div>
+    <div class="tools" id="tools" hidden>
+      <div class="group tool-pick">
+        <button class="icon on" data-tool="move" title="이동 (V)" aria-label="이동"><svg viewBox="0 0 24 24"><path d="M12 3v18M3 12h18M12 3l-3 3M12 3l3 3M12 21l-3-3M12 21l3-3M3 12l3-3M3 12l3 3M21 12l-3-3M21 12l-3 3"/></svg></button>
+        <button class="icon" data-tool="erase" title="지우기 (E)" aria-label="지우기"><svg viewBox="0 0 24 24"><path d="M20 20H9L4 15a2 2 0 0 1 0-2.8L13.2 3a2 2 0 0 1 2.8 0L21 8a2 2 0 0 1 0 2.8L12 20"/><path d="M8 11l6 6"/></svg></button>
+        <button class="icon" data-tool="restore" title="되살리기 (R)" aria-label="되살리기"><svg viewBox="0 0 24 24"><path d="M9.5 14.5L4 20M14 4l6 6-7.5 7.5-6-6z"/><path d="M17 3v4M15 5h4"/></svg></button>
+      </div>
+      <div class="group size" id="sizeBox" hidden>
+        <input type="range" id="size" min="4" max="300" value="60" aria-label="붓 크기">
+      </div>
+      <div class="group">
+        <button class="icon" id="undo" title="되돌리기 (Ctrl+Z)" aria-label="되돌리기" disabled><svg viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg></button>
+        <button class="icon" id="peek" title="원본 보기 (누르고 있기)" aria-label="원본 보기"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
+      </div>
+      <div class="group bgs" id="bgs">
+        <button class="sw on" data-bg="none" title="투명" aria-label="투명 배경"></button>
+        <button class="sw" data-bg="#ffffff" title="흰색" aria-label="흰색 배경"></button>
+        <button class="sw" data-bg="#000000" title="검정" aria-label="검정 배경"></button>
+        <label class="sw pick" title="색 고르기" aria-label="색 고르기"><input type="color" id="bgcolor" value="#4f7cff"></label>
+      </div>
+      <button class="primary" id="save"><svg viewBox="0 0 24 24"><path d="M12 4v12M7 11l5 5 5-5M5 20h14"/></svg><span>저장</span><small id="fmt">PNG</small></button>
+    </div>
+  </section>
+</main>
+<div class="toast" id="toast" hidden></div>
+<script type="module" src="app.js?v=1"></script>
+</body>
+</html>
