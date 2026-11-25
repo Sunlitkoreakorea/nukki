@@ -6,7 +6,7 @@ const TEST = new URLSearchParams(location.search).has('test');
 const IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 const MAX_PX = IOS ? 16e6 : 50e6;
 
-const worker = new Worker(new URL('./worker.js?v=1', import.meta.url), { type: 'module' });
+const worker = new Worker(new URL('./worker.js?v=2', import.meta.url), { type: 'module' });
 
 const S = {
   caps: null, cached: false, mb: 0, ep: '',

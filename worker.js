@@ -52,6 +52,9 @@ async function isCached() {
   try { return !!(await (await caches.open(CACHE)).match(MODELS[MODEL].url)); } catch { return false; }
 }
 
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// 받다가 끊기면 받은 데까지 이어서(Range) 다시 받는다.
 async function fetchModel(onProgress) {
   const { url, bytes } = MODELS[MODEL];
   let cache = null;
@@ -60,21 +63,34 @@ async function fetchModel(onProgress) {
     const hit = await cache.match(url);
     if (hit) return new Uint8Array(await hit.arrayBuffer());
   }
-  const res = await fetch(url);
-  if (!res.ok) throw new Error('모델을 받지 못했어요 (' + res.status + ')');
-  const total = +res.headers.get('content-length') || bytes;
-  let buf = new Uint8Array(total), got = 0, last = 0;
-  const reader = res.body.getReader();
+  let buf = null, got = 0, total = bytes, last = 0, fails = 0;
   for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    if (got + value.length > buf.length) {
-      const bigger = new Uint8Array(Math.max(buf.length * 1.25, got + value.length) | 0);
-      bigger.set(buf.subarray(0, got)); buf = bigger;
+    try {
+      const res = await fetch(url, got ? { headers: { Range: `bytes=${got}-` } } : undefined);
+      if (got && res.status !== 206) got = 0; // 이어받기를 안 받아 주면 처음부터
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      if (!buf) {
+        total = +res.headers.get('content-length') || bytes;
+        buf = new Uint8Array(total);
+      }
+      const reader = res.body.getReader();
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        if (got + value.length > buf.length) {
+          const bigger = new Uint8Array(Math.max(buf.length * 1.25, got + value.length) | 0);
+          bigger.set(buf.subarray(0, got)); buf = bigger;
+        }
+        buf.set(value, got); got += value.length; fails = 0;
+        const now = performance.now();
+        if (now - last > 120) { last = now; onProgress(got, total); }
+      }
+      break;
+    } catch (err) {
+      post({ type: 'warn', message: 'download: ' + String((err && err.message) || err) + ' at ' + got });
+      if (++fails > 5) throw new Error('모델을 받다가 연결이 끊겼어요. 다시 시도해 주세요');
+      await sleep(800 * fails);
     }
-    buf.set(value, got); got += value.length;
-    const now = performance.now();
-    if (now - last > 120) { last = now; onProgress(got, total); }
   }
   if (got !== buf.length) buf = buf.slice(0, got);
   onProgress(got, got);
@@ -90,13 +106,17 @@ async function fetchModel(onProgress) {
 }
 
 const loadMs = {};
-async function createSession(ep, id) {
+async function loadBytes(id) {
   let t = performance.now();
   let bytes = await fetchModel((got, total) => post({ type: 'progress', id, stage: 'download', got, total }));
   loadMs.fetch = Math.round(performance.now() - t); t = performance.now();
   post({ type: 'progress', id, stage: 'open' });
   if (MODELS[MODEL].patch === 'double') bytes = patchDoubleToFloat(bytes).bytes;
-  loadMs.patch = Math.round(performance.now() - t); t = performance.now();
+  loadMs.patch = Math.round(performance.now() - t);
+  return bytes;
+}
+async function createSession(bytes, ep) {
+  const t = performance.now();
   const s = await ort.InferenceSession.create(bytes, { executionProviders: [ep], graphOptimizationLevel: 'all' });
   loadMs.create = Math.round(performance.now() - t);
   return s;
@@ -109,14 +129,16 @@ async function ensureSession(id, forceEp) {
   if (loading) { await loading.catch(() => {}); if (session && sessionEp === want) return; }
   loading = (async () => {
     if (session) { try { await session.release(); } catch {} session = null; sessionEp = null; }
+    // 받기 실패는 그대로 오류로 (GPU 문제로 오해해 CPU로 넘어가지 않게)
+    const bytes = await loadBytes(id);
     try {
-      session = await createSession(want, id); sessionEp = want;
+      session = await createSession(bytes, want); sessionEp = want;
     } catch (err) {
       if (want !== 'webgpu') throw err;
       console.warn('WebGPU 실패, CPU로 전환', err);
       post({ type: 'warn', message: 'session: ' + String((err && err.message) || err) });
       caps.gpu = false;
-      session = await createSession('wasm', id); sessionEp = 'wasm';
+      session = await createSession(await loadBytes(id), 'wasm'); sessionEp = 'wasm';
     }
     post({ type: 'model', ep: sessionEp });
   })();
